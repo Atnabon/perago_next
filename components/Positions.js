@@ -14,9 +14,10 @@ const theme = createTheme();
 export default function Positions() {
   const {
     positions,
+    pselectedPosition,
+    setpSelectedPosition,
     status,
     error,
-    selectedPosition,
     addPosition,
     updatePosition,
     deletePosition,
@@ -27,7 +28,8 @@ export default function Positions() {
   const [positionIds, setPositionIds] = useState([]);
   const [parentId, setParentId] = useState(null);
   const [formData, setFormData] = useState({
-    parentId: null, 
+    // Initialize other form data properties
+    parentId: null, // or provide a default parentId if needed
   });
 
   const handleAddPosition = async (data) => {
@@ -36,7 +38,7 @@ export default function Positions() {
       await addPosition(data);
       reset();
       setFormCreated(true);
-      mutate("/api/positions"); 
+      mutate("/api/positions"); // Update data after adding a new position
     } catch (error) {
       console.error(error);
     }
@@ -44,25 +46,25 @@ export default function Positions() {
 
   const handleUpdatePosition = async (data) => {
     try {
-      await updatePosition({ ...data, id: selectedPosition?.id });
-      SelectedPosition(null);
+      await updatePosition({ ...data, id: pselectedPosition?.id });
+      setpSelectedPosition(null);
       reset();
-      mutate("/api/positions"); 
+      mutate("/api/positions"); // Update data after updating a position
     } catch (error) {
       console.error(error);
     }
   };
 
   const handleDeletePosition = async () => {
-    if (selectedPosition) {
-      await deletePosition(selectedPosition.id);
-      SelectedPosition(null);
-      mutate("/api/positions"); 
+    if (pselectedPosition) {
+      await deletePosition(pselectedPosition.id);
+      setpSelectedPosition(null);
+      mutate(); // Update data after deleting a position
     }
   };
 
   const handleSubmitForm = (data) => {
-    if (selectedPosition) {
+    if (pselectedPosition) {
       handleUpdatePosition(data);
     } else {
       handleAddPosition(data);
@@ -83,15 +85,23 @@ export default function Positions() {
   }, [data]);
 
   const handleParentChange = (event) => {
-    const selectedParentId = event.target.value;
-    console.log("id:", selectedParentId);
-    setParentId(selectedParentId);
+    const pselectedParentId = event.target.value;
+    console.log("ID:", pselectedParentId);
+    setParentId(pselectedParentId);
     setFormData({
       ...formData,
-      parentId: selectedParentId,
+      parentId: pselectedParentId,
     });
   };
+  useEffect(() => {
+    if (formCreated) {
+      const timer = setTimeout(() => {
+        setFormCreated(false);
+      }, 5000);
 
+      return () => clearTimeout(timer);
+    }
+  }, [formCreated]);
   return (
     <div className="flex flex-col h-screen">
       {formCreated && (
@@ -108,7 +118,8 @@ export default function Positions() {
         <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-4">
           <input
             type="hidden"
-            
+            // {...register("id")}
+            // value= "test"
           />
           <div>
             <label
@@ -174,7 +185,7 @@ export default function Positions() {
               type="submit"
               className="px-4 py-2 font-bold text-white bg-gradient-to-r from-blue-400 to-green-500 rounded hover:bg-green-700 shadow-md"
             >
-              {selectedPosition ? "Update" : "Add Position"}
+              {pselectedPosition ? "Update" : "Add Position"}
             </button>
           </div>
         </form>
@@ -187,6 +198,7 @@ async function fetchPositions() {
   const response = await axios.get("/api/positions");
   const positions = response.data.map((position) => ({
     ...position,
+    // id: position._id.toString(),
   }));
   return positions;
 }
