@@ -1,7 +1,8 @@
 "use client"
-
 import { createContext, useContext, useState } from 'react';
 import useSWR from 'swr';
+import mongoose from "mongoose";
+
 
 const PositionContext = createContext();
 
@@ -48,19 +49,35 @@ export function PositionProvider({ children }) {
   };
 
   const updatePosition = async (position) => {
-    const res = await fetch(`/api/positions/${position.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(position),
-    });
-    const data = await res.json();
-    const index = statePositions.findIndex((p) => p.id === position.id);
-    const updatedPositions = [...statePositions];
-    updatedPositions[index] = position;
-    setPositions(updatedPositions);
+    console.log("updated data::", position);
+    try {
+      const res = await fetch(`/api/positions/${position.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(position),
+      });
+
+      if (!res.ok) {
+        const errorResponse = await res.json();
+        throw new Error(
+          `Failed to update position with ID: ${
+            position.id
+          }. Error: ${JSON.stringify(errorResponse)}`
+        );
+      }
+
+      const data = await res.json();
+      const index = statePositions.findIndex((p) => p.id === position.id);
+      const updatedPositions = [...statePositions];
+      updatedPositions[index] = position;
+      setPositions(updatedPositions);
+    } catch (error) {
+      console.error(error);
+    }
   };
+
 
  const deletePosition = async (positionId) => {
    console.log("we're here", positionId);
@@ -71,17 +88,23 @@ export function PositionProvider({ children }) {
        headers: {
          "Content-Type": "application/json",
        },
-       body: JSON.stringify({ positionId }), 
+       body: JSON.stringify({ positionId }), // Send the positionId as JSON payload
      });
 
+     // Check if the response status is not okay (e.g., 404 Not Found)
      if (!res.ok) {
        throw new Error(`Failed to delete position with ID: ${positionId}`);
      }
 
+     // If the server returns an empty response, we can assume the deletion was successful
+     // So, you don't necessarily need to use `res.json()`
+
+     // Update the positions state by filtering out the deleted position
      const updatedPositions = statePositions.filter(
        (p) => p._id !== positionId
-     ); 
+     ); // Use _id, assuming it's the correct identifier
      setPositions(updatedPositions);
+     window.location.reload()
    } catch (error) {
      console.error(error);
    }
